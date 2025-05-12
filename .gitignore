@@ -5,3 +5,4 @@ TXTs_cleaned
 Chunks
 Embeddings
 vector_store
+__pycache__
