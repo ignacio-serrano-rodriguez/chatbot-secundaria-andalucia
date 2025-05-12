@@ -55,7 +55,7 @@ def generate_llm_answer(query: str, context_chunks: list[str], model_name: str =
         "stream": False  # Get the full response at once
     }
 
-    print(f"\nSending request to Ollama API with model: {model_name}...")
+    print(f"\nChatbot: (buscando información...)")
     # print(f"Prompt being sent (first 200 chars): {prompt[:200]}...") # For debugging
 
     try:
@@ -69,7 +69,6 @@ def generate_llm_answer(query: str, context_chunks: list[str], model_name: str =
         
         if "response" in response_data:
             full_answer = response_data["response"].strip()
-            print("Successfully received answer from LLM.")
             return full_answer
         else:
             print(f"Error: 'response' key not found in Ollama API response. Full response: {response_data}")

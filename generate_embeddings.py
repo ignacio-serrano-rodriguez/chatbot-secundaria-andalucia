@@ -52,7 +52,6 @@ def main():
             sys.exit(1)
 
     # Load the sentence transformer model
-    print(f"Loading sentence transformer model: {model_name}...")
     try:
         model = SentenceTransformer(model_name)
     except Exception as e:
@@ -60,7 +59,6 @@ def main():
         print("Make sure you have internet access to download the model for the first time, or that the model is cached.", file=sys.stderr)
         print("You might need to install the library: pip install sentence-transformers", file=sys.stderr)
         sys.exit(1)
-    print("Model loaded successfully.")
 
     # Find all JSON files in the input directory (from chunk_text.py)
     chunk_files = glob.glob(os.path.join(input_directory, "*_chunks.json"))

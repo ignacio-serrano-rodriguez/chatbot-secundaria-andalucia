@@ -18,10 +18,8 @@ def load_retrieval_components(model_name, vector_store_dir, faiss_index_filename
     Returns:
         tuple: (model, index, metadata_chunks) or (None, None, None) if an error occurs.
     """
-    print(f"Loading sentence transformer model: {model_name}...")
     try:
         model = SentenceTransformer(model_name)
-        print("Model loaded successfully.")
     except Exception as e:
         print(f"Error loading sentence transformer model '{model_name}': {e}", file=sys.stderr)
         print("Make sure you have internet access or the model is cached.", file=sys.stderr)
@@ -41,19 +39,15 @@ def load_retrieval_components(model_name, vector_store_dir, faiss_index_filename
         print("Please ensure 'create_vector_store.py' has been run successfully.", file=sys.stderr)
         return model, None, None
 
-    print(f"Loading FAISS index from: {faiss_index_path}...")
     try:
         index = faiss.read_index(faiss_index_path)
-        print(f"FAISS index loaded. Total vectors: {index.ntotal}")
     except Exception as e:
         print(f"Error loading FAISS index: {e}", file=sys.stderr)
         return model, None, None
 
-    print(f"Loading metadata from: {metadata_path}...")
     try:
         with open(metadata_path, 'r', encoding='utf-8') as f:
             metadata_chunks = json.load(f)
-        print(f"Metadata loaded. Number of chunks: {len(metadata_chunks)}")
     except Exception as e:
         print(f"Error loading metadata: {e}", file=sys.stderr)
         return model, index, None
@@ -83,14 +77,11 @@ def retrieve_relevant_chunks(query, model, index, metadata_chunks, k=5):
         print("Error: Missing one or more required components for retrieval.", file=sys.stderr)
         return []
 
-    print(f"\nEmbedding query: \"{query}\"")
     try:
         query_embedding = model.encode([query], convert_to_numpy=True)
     except Exception as e:
-        print(f"Error embedding query: {e}", file=sys.stderr)
         return []
 
-    print(f"Searching FAISS index for top {k} similar chunks...")
     try:
         # D: distances, I: indices
         distances, indices = index.search(query_embedding, k)
@@ -99,7 +90,6 @@ def retrieve_relevant_chunks(query, model, index, metadata_chunks, k=5):
         return []
 
     retrieved_chunks = []
-    print("\nRetrieved chunks:")
     if indices.size == 0 or indices[0][0] == -1 : # -1 can indicate no results or error in some FAISS versions/setups
         print("No relevant chunks found.")
         return []

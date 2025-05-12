@@ -53,7 +53,6 @@ def is_pipeline_stage_complete(output_dir_or_file, stage_name):
     if os.path.isdir(output_dir_or_file) and not os.listdir(output_dir_or_file):
         print(f"Stage '{stage_name}' output directory ('{output_dir_or_file}') is empty.")
         return False
-    print(f"Stage '{stage_name}' appears complete.")
     return True
 
 # --- Main Processing Functions ---
@@ -68,7 +67,6 @@ def run_data_preparation_pipeline(force_rerun=False):
     5. Vector Store Creation
     Skips stages if their output already exists, unless force_rerun is True.
     """
-    print("--- Starting Data Preparation Pipeline ---")
 
     # Create necessary base directories if they don't exist
     check_and_create_dir(PDF_DIR) # User needs to put PDFs here
@@ -127,7 +125,6 @@ def run_data_preparation_pipeline(force_rerun=False):
             print(f"Error during Vector Store Creation: {e}", file=sys.stderr)
             return False
 
-    print("--- Data Preparation Pipeline Finished Successfully ---")
     return True
 
 # --- Chatbot Interaction ---
@@ -140,7 +137,6 @@ class Chatbot:
 
     def load_retrieval_system(self):
         """Loads the components needed for query retrieval."""
-        print("\nLoading retrieval system...")
         self.embedding_model, self.faiss_index, self.metadata_chunks = load_retrieval_components(
             MODEL_NAME,
             VECTOR_STORE_DIR,
@@ -148,7 +144,6 @@ class Chatbot:
             "doc_chunks_metadata.json"
         )
         if self.embedding_model and self.faiss_index and self.metadata_chunks:
-            print("Retrieval system loaded successfully.")
             self.retrieval_ready = True
         else:
             print("Failed to load retrieval system. Please check previous errors.", file=sys.stderr)
@@ -162,8 +157,6 @@ class Chatbot:
         if not self.retrieval_ready:
             print("Retrieval system not ready. Cannot process query.", file=sys.stderr)
             return "Error: Retrieval system not initialized."
-
-        print(f"\nProcessing query: '{query}'")
         
         # 1. Retrieve relevant chunks
         relevant_chunks = retrieve_relevant_chunks(
@@ -176,8 +169,6 @@ class Chatbot:
 
         if not relevant_chunks:
             return "I couldn't find any relevant information in the documents for your query."
-
-        print(f"Retrieved {len(relevant_chunks)} relevant chunks.")
         
         # 2. Generate answer using LLM
         answer = generate_llm_answer(query, relevant_chunks, model_name=OLLAMA_MODEL_NAME)
@@ -191,11 +182,11 @@ def main_chat_loop():
     """
     Main loop for the chatbot interaction.
     """
-    print("--- Local PDF Chatbot Initializing ---")
 
     # Ask user if they want to force re-run the data preparation pipeline
-    force_rerun_input = input("Do you want to force re-processing of all PDF data? (yes/no) [no]: ").strip().lower()
-    force_rerun = True if force_rerun_input == 'yes' else False
+    force_rerun_input = input("\n¿Desea forzar el reprocesamiento de todos los PDF? (si/no) [no]: ").strip().lower()
+    print(f"Cargando chatbot...")
+    force_rerun = True if force_rerun_input == 'si' else False
     
     if not run_data_preparation_pipeline(force_rerun=force_rerun):
         print("Chatbot initialization failed due to errors in data preparation.", file=sys.stderr)
@@ -206,21 +197,21 @@ def main_chat_loop():
         print("Chatbot initialization failed: Could not load retrieval system.", file=sys.stderr)
         sys.exit(1)
 
-    print("\n--- Chatbot Ready --- Type 'exit' or 'quit' to end. ---")
+    print("\nChatbot: Escribe 'adios' o 'salir' para dejar de chatear conmigo.")
     while True:
         try:
-            user_query = input("\nYou: ")
-            if user_query.lower() in ['exit', 'quit']:
-                print("Exiting chatbot. Goodbye!")
+            user_query = input("\nYo: ")
+            if user_query.lower() in ['adios', 'salir']:
+                print("\nChatbot: ¡Nos vemos!")
                 break
             if not user_query.strip():
                 continue
 
             bot_answer = chatbot.get_answer(user_query)
-            print(f"\nBot: {bot_answer}")
+            print(f"Chatbot: {bot_answer}")
 
         except KeyboardInterrupt:
-            print("\nExiting chatbot. Goodbye!")
+            print("\nChatbot: ¡Nos vemos!")
             break
         except Exception as e:
             print(f"An unexpected error occurred in the chat loop: {e}", file=sys.stderr)
