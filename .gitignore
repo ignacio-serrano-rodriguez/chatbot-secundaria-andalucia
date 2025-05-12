@@ -3,3 +3,5 @@ PDFs
 TXTs
 TXTs_cleaned
 Chunks
+Embeddings
+vector_store
