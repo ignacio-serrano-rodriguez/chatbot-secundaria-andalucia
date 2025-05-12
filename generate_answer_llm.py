@@ -12,7 +12,9 @@ OLLAMA_MODEL_NAME = "mistral:7b-instruct"
 
 def generate_llm_answer(query: str, context_chunks: list[str], model_name: str = OLLAMA_MODEL_NAME, ollama_url: str = OLLAMA_API_URL) -> str | None:
     """
-    Generates an answer from a local LLM using the Ollama API.
+    Generates an answer from a local LLM using the Ollama API,
+    strictly based on the provided context.
+    If the answer is not in the context, it should indicate so.
 
     Args:
         query (str): The user's query.
@@ -29,11 +31,17 @@ def generate_llm_answer(query: str, context_chunks: list[str], model_name: str =
     if not context_chunks:
         print("Warning: Context chunks list is empty. Proceeding with query only.")
 
-    # Construct the prompt
+    # Construct the prompt with specific instructions
     context_str = "\n\n".join(context_chunks)
     prompt = f"""
+    Por favor, responde la siguiente pregunta basándote ÚNICAMENTE en el contexto proporcionado a continuación.
+    No utilices ningún conocimiento externo o general que puedas tener.
+    Si la respuesta a la pregunta no se encuentra explícitamente en el contexto, debes indicar claramente que no puedes responder con la información disponible en los documentos o que la información no se encuentra en el contexto.
+
     Contexto:
-    {context_str}
+    ---
+    {context_str if context_chunks else "No se ha proporcionado ningún contexto de los documentos."}
+    ---
 
     Pregunta: {query}
 
@@ -65,34 +73,27 @@ def generate_llm_answer(query: str, context_chunks: list[str], model_name: str =
             return full_answer
         else:
             print(f"Error: 'response' key not found in Ollama API response. Full response: {response_data}")
-            return None
+            return "Lo siento, no pude procesar la respuesta del modelo correctamente."
 
     except requests.exceptions.RequestException as e:
         print(f"Error connecting to Ollama API at {ollama_url}: {e}")
         print("Please ensure Ollama is running and accessible.")
         print("You can start Ollama by running 'ollama serve' in your terminal.")
-        print("If you are using a specific model like 'mistral:7b-instruct', ensure it is pulled with 'ollama pull mistral:7b-instruct'.")
-        return None
+        print(f"If you are using a specific model like '{model_name}', ensure it is pulled with 'ollama pull {model_name}'.")
+        return "Lo siento, no pude conectarme con el modelo de lenguaje. Por favor, verifica que Ollama esté funcionando."
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON response from Ollama API: {e}")
         print(f"Raw response content: {response.text}")
-        return None
+        return "Lo siento, hubo un problema al decodificar la respuesta del modelo."
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        return None
+        return "Lo siento, ocurrió un error inesperado al generar la respuesta."
 
 if __name__ == "__main__":
-    print("--- LLM Answer Generation Script (Example Usage) ---")
+    print("--- LLM Answer Generation Script (Example Usage with Strict Context) ---")
 
-    # This is an example. In a real application, the query and context
-    # would come from the user and the retrieval system respectively.
-
-    # 1. Example User Query
-    example_query = "Explícame los criterios de evaluación en la Educación Secundaria Obligatoria según la normativa."
-
-    # 2. Example Context Chunks (simulating what query_and_retrieve.py would provide)
-    # In a real scenario, these would be dynamically fetched based on the query.
-    example_context = [
+    example_query_in_context = "Explícame los criterios de evaluación en la Educación Secundaria Obligatoria según la normativa."
+    example_context_for_query = [
         "La evaluación del proceso de aprendizaje del alumnado de Educación Secundaria Obligatoria será continua, formativa e integradora.",
         "Se establecerán medidas de refuerzo educativo para el alumnado que presente dificultades de aprendizaje, con especial atención a la adquisición de las competencias clave.",
         "Los referentes para la evaluación de las competencias específicas de las materias serán los criterios de evaluación.",
@@ -100,20 +101,30 @@ if __name__ == "__main__":
         "Los resultados de la evaluación se expresarán en los términos Insuficiente (IN), Suficiente (SU), Bien (BI), Notable (NT), o Sobresaliente (SB)."
     ]
 
-    print(f"\nUser Query: {example_query}")
-    print(f"Number of context chunks: {len(example_context)}")
+    example_query_not_in_context = "¿Cuál es la capital de Francia?" # This should not be answerable from the context
 
-    # 3. Generate the answer
-    # You might need to adjust OLLAMA_MODEL_NAME if "mistral:7b-instruct" is not available
-    # or if you prefer another model you have pulled with Ollama.
-    generated_answer = generate_llm_answer(example_query, example_context)
-
-    if generated_answer:
-        print("\n--- Generated LLM Answer ---")
-        print(generated_answer)
+    print(f"\nUser Query (in context): {example_query_in_context}")
+    generated_answer_1 = generate_llm_answer(example_query_in_context, example_context_for_query)
+    if generated_answer_1:
+        print("\n--- Generated LLM Answer 1 ---")
+        print(generated_answer_1)
     else:
-        print("\n--- Failed to generate LLM Answer ---")
-        print("Please check the console output for error messages.")
-        print("Ensure Ollama is running and the specified model is available (e.g., 'ollama pull mistral:7b-instruct').")
+        print("\n--- Failed to generate LLM Answer 1 ---")
+
+    print(f"\nUser Query (NOT in context): {example_query_not_in_context}")
+    generated_answer_2 = generate_llm_answer(example_query_not_in_context, example_context_for_query)
+    if generated_answer_2:
+        print("\n--- Generated LLM Answer 2 ---")
+        print(generated_answer_2) # Expected: "I don't know" or similar
+    else:
+        print("\n--- Failed to generate LLM Answer 2 ---")
+
+    print(f"\nUser Query (with NO context provided to LLM): {example_query_in_context}")
+    generated_answer_3 = generate_llm_answer(example_query_in_context, []) # Simulating no relevant chunks found
+    if generated_answer_3:
+        print("\n--- Generated LLM Answer 3 ---")
+        print(generated_answer_3) # Expected: "I don't know" or similar
+    else:
+        print("\n--- Failed to generate LLM Answer 3 ---")
 
     print("\n--- Script Finished ---")
